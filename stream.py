@@ -4,8 +4,9 @@ import picamera
 import threading
 import json
 from base64 import b64encode
-from websocket import create_connection
 from datetime import datetime
+from websocket import create_connection
+from websocket._exceptions import WebSocketBadStatusException
 
 
 # Default settings
@@ -17,7 +18,8 @@ STREAM_NAME = 'STREAM'
 DEBUG = True
 VFLIP = False
 HFLIP = False
-MAX_THREADS = 3
+THREADS = 5
+
 
 # Override defaults with local_settings
 try:
@@ -26,51 +28,64 @@ except ImportError:
     pass
 
 
-def send(stream):
-    stream[0].seek(0)
-    image = b64encode(stream[0].read()).decode('ascii')
-    stream[1].send(json.dumps({
-        'image': image,
-        'key': KEY,
-    }))
-    stream[2] = True
+def debug(*args):
+    if DEBUG:
+        print(datetime.now(), *args)
+
+
+def send(images, cv, error):
+    try:
+        ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+        while True:
+            with cv:
+                while not len(images):
+                    cv.wait()
+                image = images.pop(0)
+            image = b64encode(image).decode('ascii')
+            ws.send(json.dumps({
+               'image': image,
+               'key': KEY,
+            }))
+            debug('Send', threading.current_thread().name)
+    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
+        debug('Unable to connect', e)
+        error[0] = True
+
 
 def capture():
-    if DEBUG:
-    	print(datetime.now(), 'Connecting to %s on port %s' % (IP, PORT))
+    debug('Connecting to %s on port %s' % (IP, PORT))
 
-    streams = [[io.BytesIO(), create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME)), True] for _ in range(MAX_THREADS)]
-    stream_index = 0
+    cv = threading.Condition()
+    stream = io.BytesIO()
+    images = []
+    error = [False]
 
-    try:
-        with picamera.PiCamera() as camera:
-            camera.resolution = RESOLUTION
-            camera.vflip = VFLIP
-            camera.hflip = HFLIP
-            camera.start_preview()
-            time.sleep(2)
+    for _ in range(THREADS):
+        threading.Thread(target=send, args=(images, cv, error)).start()
 
-            while True:
-                while not streams[stream_index][2]: pass
-                streams[stream_index][2] = False
-                streams[stream_index][0].seek(0)
-                streams[stream_index][0].truncate()
-                camera.capture(streams[stream_index][0], 'jpeg', use_video_port=True)
-                if DEBUG:
-                    print(datetime.now(), stream_index)
-                threading.Thread(target=send, args=(streams[stream_index],)).start()
-                stream_index = (stream_index + 1) % MAX_THREADS
-    finally:
-        for stream in streams:
-            stream[1].close()
+    with picamera.PiCamera() as camera:
+        camera.resolution = RESOLUTION
+        camera.vflip = VFLIP
+        camera.hflip = HFLIP
+
+        for _ in camera.capture_continuous(stream, 'jpeg'):
+            debug('Capture')
+            if error[0]:
+                break
+            stream.seek(0)
+            image = stream.read()
+            with cv:
+                if len(images) < 3:
+                    images.append(image)
+                cv.notify_all()
+            stream.seek(0)
+            stream.truncate()
 
 
 def main():
     while True:
-        try:
-            capture()
-        except:
-            time.sleep(1)
+        capture()
+        time.sleep(3)
 
 
 main()
