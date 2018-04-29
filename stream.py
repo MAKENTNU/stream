@@ -18,7 +18,7 @@ STREAM_NAME = 'STREAM'
 DEBUG = True
 VFLIP = False
 HFLIP = False
-THREADS = 5
+THREADS = 3
 
 
 # Override defaults with local_settings
@@ -36,9 +36,10 @@ def debug(*args):
 def send(images, cv, error):
     try:
         ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
-        while True:
+        while not error[0]:
             with cv:
                 while not len(images):
+                    if error[0]: return
                     cv.wait()
                 image = images.pop(0)
             image = b64encode(image).decode('ascii')
@@ -46,10 +47,12 @@ def send(images, cv, error):
                'image': image,
                'key': KEY,
             }))
-            debug('Send', threading.current_thread().name)
+            debug('Send from', threading.current_thread().name)
     except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
         debug('Unable to connect', e)
         error[0] = True
+        with cv:
+            cv.notify_all()
 
 
 def capture():
@@ -70,6 +73,7 @@ def capture():
 
         for _ in camera.capture_continuous(stream, 'jpeg'):
             debug('Capture')
+            debug('Active threads:', threading.active_count())
             if error[0]:
                 break
             stream.seek(0)
