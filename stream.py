@@ -19,6 +19,7 @@ DEBUG = True
 VFLIP = False
 HFLIP = False
 THREADS = 3
+DELAY = 0
 
 
 # Override defaults with local_settings
@@ -75,6 +76,7 @@ def capture():
         camera.hflip = HFLIP
 
         for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
+            time.sleep(DELAY)
             debug('Capture')
             debug('Active threads:', threading.active_count())
             stream.seek(0)
