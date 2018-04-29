@@ -63,6 +63,9 @@ def capture():
     images = []
     error = [False]
 
+    if not THREADS:
+        ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+
     for _ in range(THREADS):
         threading.Thread(target=send, args=(images, cv, error)).start()
 
@@ -74,14 +77,22 @@ def capture():
         for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
             debug('Capture')
             debug('Active threads:', threading.active_count())
-            if error[0]:
-                break
             stream.seek(0)
             image = stream.read()
-            with cv:
-                if len(images) < 3:
-                    images.append(image)
-                cv.notify_all()
+            if THREADS:
+                if error[0]:
+                    break
+                with cv:
+                    if len(images) < 3:
+                        images.append(image)
+                    cv.notify_all()
+            else:
+                image = b64encode(image).decode('ascii')
+                ws.send(json.dumps({
+                   'image': image,
+                   'key': KEY,
+                }))
+                debug('Send from', threading.current_thread().name)
             stream.seek(0)
             stream.truncate()
 
