@@ -7,7 +7,8 @@ from base64 import b64encode
 from datetime import datetime
 from websocket import create_connection
 from websocket._exceptions import WebSocketBadStatusException
-
+from PIL import Image
+from io import BytesIO
 
 # Default settings
 RESOLUTION = (640, 480)
@@ -20,6 +21,7 @@ VFLIP = False
 HFLIP = False
 THREADS = 3
 DELAY = 0
+QUALITY = 70
 
 
 # Override defaults with local_settings
@@ -60,7 +62,8 @@ def capture():
     debug('Connecting to %s on port %s' % (IP, PORT))
 
     cv = threading.Condition()
-    stream = io.BytesIO()
+    stream_capture = BytesIO()
+    stream_image = BytesIO()
     images = []
     error = [False]
 
@@ -75,12 +78,16 @@ def capture():
         camera.vflip = VFLIP
         camera.hflip = HFLIP
 
-        for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
+        for _ in camera.capture_continuous(stream_capture, 'jpeg', use_video_port=True):
             time.sleep(DELAY)
             debug('Capture')
             debug('Active threads:', threading.active_count())
-            stream.seek(0)
-            image = stream.read()
+            stream_capture.seek(0)
+            stream_image.seek(0)
+            stream_image.truncate()
+            Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
+            stream_image.seek(0)
+            image = stream_image.read()
             if THREADS:
                 if error[0]:
                     break
@@ -95,8 +102,8 @@ def capture():
                    'key': KEY,
                 }))
                 debug('Send from', threading.current_thread().name)
-            stream.seek(0)
-            stream.truncate()
+            stream_capture.seek(0)
+            stream_capture.truncate()
 
 
 def main():
