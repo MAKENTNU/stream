@@ -71,7 +71,7 @@ def capture():
         camera.vflip = VFLIP
         camera.hflip = HFLIP
 
-        for _ in camera.capture_continuous(stream, 'jpeg'):
+        for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
             debug('Capture')
             debug('Active threads:', threading.active_count())
             if error[0]:
