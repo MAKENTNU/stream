@@ -36,7 +36,15 @@ def debug(*args):
         print(datetime.now(), *args)
 
 
-def send(images, cv, error):
+def decode_and_send(ws, image):
+    ws.send(json.dumps({
+       'image': b64encode(image).decode('ascii'),
+       'key': KEY,
+    }))
+    debug('Send from', threading.current_thread().name)
+
+
+def sender(images, cv, error):
     try:
         ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
         while not error[0]:
@@ -45,12 +53,7 @@ def send(images, cv, error):
                     if error[0]: return
                     cv.wait()
                 image = images.pop(0)
-            image = b64encode(image).decode('ascii')
-            ws.send(json.dumps({
-               'image': image,
-               'key': KEY,
-            }))
-            debug('Send from', threading.current_thread().name)
+            decode_and_send(ws, image)
     except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
         debug('Unable to connect', e)
         error[0] = True
@@ -68,10 +71,13 @@ def capture():
     error = [False]
 
     if not THREADS:
-        ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+        try:
+            ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+        except WebSocketBadStatusException:
+            return
 
     for _ in range(THREADS):
-        threading.Thread(target=send, args=(images, cv, error)).start()
+        threading.Thread(target=sender, args=(images, cv, error)).start()
 
     with picamera.PiCamera() as camera:
         camera.resolution = RESOLUTION
@@ -86,24 +92,17 @@ def capture():
             stream_image.seek(0)
             stream_image.truncate()
             Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
-            stream_image.seek(0)
-            image = stream_image.read()
             if THREADS:
                 if error[0]:
                     break
                 with cv:
                     if len(images) < 3:
-                        images.append(image)
+                        images.append(stream_image.getvalue())
                     cv.notify_all()
             else:
                 try:
-                    image = b64encode(image).decode('ascii')
-                    ws.send(json.dumps({
-                       'image': image,
-                       'key': KEY,
-                    }))
-                    debug('Send from', threading.current_thread().name)
-                except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
+                    decode_and_send(ws, stream_image.getvalue())
+                except (BrokenPipeError, ConnectionResetError) as e:
                     return
             stream_capture.seek(0)
             stream_capture.truncate()
