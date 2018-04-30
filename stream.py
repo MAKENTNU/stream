@@ -96,12 +96,15 @@ def capture():
                         images.append(image)
                     cv.notify_all()
             else:
-                image = b64encode(image).decode('ascii')
-                ws.send(json.dumps({
-                   'image': image,
-                   'key': KEY,
-                }))
-                debug('Send from', threading.current_thread().name)
+                try:
+                    image = b64encode(image).decode('ascii')
+                    ws.send(json.dumps({
+                       'image': image,
+                       'key': KEY,
+                    }))
+                    debug('Send from', threading.current_thread().name)
+                except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
+                    return
             stream_capture.seek(0)
             stream_capture.truncate()
 
