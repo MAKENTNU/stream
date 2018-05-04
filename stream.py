@@ -6,7 +6,7 @@ import json
 from base64 import b64encode
 from datetime import datetime
 from websocket import create_connection
-from websocket._exceptions import WebSocketBadStatusException
+from websocket._exceptions import WebSocketBadStatusException, WebSocketConnectionClosedException
 from PIL import Image
 from io import BytesIO
 
@@ -59,7 +59,7 @@ def sender(images, cv, error):
                     cv.wait()
                 image = images.pop(0)
             decode_and_send(ws, image)
-    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
+    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError, ConnectionRefusedError, WebSocketConnectionClosedException) as e:
         debug('Unable to connect', e)
         error[0] = True
         with cv:
@@ -109,7 +109,7 @@ def capture():
             else:
                 try:
                     decode_and_send(ws, stream_image.getvalue())
-                except (BrokenPipeError, ConnectionResetError) as e:
+                except (BrokenPipeError, ConnectionResetError, WebSocketConnectionClosedException) as e:
                     return
             stream_capture.seek(0)
             stream_capture.truncate()
