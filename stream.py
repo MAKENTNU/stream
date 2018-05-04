@@ -36,6 +36,11 @@ def debug(*args):
         print(datetime.now(), *args)
 
 
+def read(ws):
+    while True:
+        ws.recv()
+
+
 def decode_and_send(ws, image):
     ws.send(json.dumps({
        'image': b64encode(image).decode('ascii'),
@@ -54,7 +59,7 @@ def sender(images, cv, error):
                     cv.wait()
                 image = images.pop(0)
             decode_and_send(ws, image)
-    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError) as e:
+    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         debug('Unable to connect', e)
         error[0] = True
         with cv:
@@ -73,7 +78,9 @@ def capture():
     if not THREADS:
         try:
             ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
-        except WebSocketBadStatusException:
+            threading.Thread(target=read, args=(ws,)).start()
+        except (WebSocketBadStatusException, ConnectionRefusedError) as e:
+            debug('Unable to connect', e)
             return
 
     for _ in range(THREADS):
