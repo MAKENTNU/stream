@@ -38,7 +38,10 @@ def debug(*args):
 
 def read(ws):
     while True:
-        ws.recv()
+        try:
+            ws.recv()
+        except WebSocketConnectionClosedException:
+            break
 
 
 def decode_and_send(ws, image):
