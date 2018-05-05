@@ -40,21 +40,23 @@ def read(ws):
     while True:
         try:
             ws.recv()
-        except WebSocketConnectionClosedException:
+        except:
             break
 
 
 def decode_and_send(ws, image):
-    ws.send(json.dumps({
+    result = ws.send(json.dumps({
        'image': b64encode(image).decode('ascii'),
        'key': KEY,
     }))
     debug('Send from', threading.current_thread().name)
+    return result
 
 
 def sender(images, cv, error):
     try:
         ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+        threading.Thread(target=read, args=(ws,)).start()
         while not error[0]:
             with cv:
                 while not len(images):
@@ -62,8 +64,8 @@ def sender(images, cv, error):
                     cv.wait()
                 image = images.pop(0)
             decode_and_send(ws, image)
-    except (WebSocketBadStatusException, BrokenPipeError, ConnectionResetError, ConnectionRefusedError, WebSocketConnectionClosedException) as e:
-        debug('Unable to connect', e)
+    except:
+        debug('Unable to connect')
         error[0] = True
         with cv:
             cv.notify_all()
@@ -82,8 +84,8 @@ def capture():
         try:
             ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
             threading.Thread(target=read, args=(ws,)).start()
-        except (WebSocketBadStatusException, ConnectionRefusedError) as e:
-            debug('Unable to connect', e)
+        except:
+            debug('Unable to connect')
             return
 
     for _ in range(THREADS):
@@ -112,7 +114,7 @@ def capture():
             else:
                 try:
                     decode_and_send(ws, stream_image.getvalue())
-                except (BrokenPipeError, ConnectionResetError, WebSocketConnectionClosedException) as e:
+                except:
                     return
             stream_capture.seek(0)
             stream_capture.truncate()
