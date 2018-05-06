@@ -103,7 +103,10 @@ def capture():
             stream_capture.seek(0)
             stream_image.seek(0)
             stream_image.truncate()
-            Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
+            try:
+                Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
+            except:
+                pass
             if THREADS:
                 if error[0]:
                     break
