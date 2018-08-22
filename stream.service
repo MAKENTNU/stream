@@ -1,0 +1,11 @@
+[Unit]
+Description=Websocket video stream
+
+[Service]
+User=pi
+Group=www-data
+WorkingDirectory=/home/pi/
+ExecStart=/home/pi/stream/env_stream/bin/python3 /home/pi/stream/stream.py
+
+[Install]
+WantedBy=multi-user.target
