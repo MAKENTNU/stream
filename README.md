@@ -12,6 +12,7 @@ Steam from Raspberry Pi to Django website with WebSockets
 7. Source environment `source env_stream/bin_activate`
 8. Install requirements `pip install -r requirements.txt`
 9. Deactivate environment `deactivate`
-10. Copy service to systemd `sudo cp stream.service /etc/systemd/system/stream.service`
-11. Enable service `sudo systemctl enable stream`
-12. Start service `sudo systemctl start stream`
+10. Install system libraries `sudo apt install libopenjp2-7 libtiff5` 
+11. Copy service to systemd `sudo cp stream.service /etc/systemd/system/stream.service`
+12. Enable service `sudo systemctl enable stream`
+13. Start service `sudo systemctl start stream`
