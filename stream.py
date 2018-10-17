@@ -12,7 +12,7 @@ from io import BytesIO
 
 # Default settings
 RESOLUTION = (640, 480)
-IP = '127.0.0.1'
+IP = 'makentnu.no'
 PORT = 80
 KEY = 'SECRET'
 STREAM_NAME = 'STREAM'
