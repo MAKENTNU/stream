@@ -12,6 +12,7 @@ echo "KEY = '$secret'" >> local_settings.py
 
 
 # Virtual environment
+sudo apt install virtualenv
 virtualenv -p python3 env_stream
 source env_stream/bin_activate
 pip install -r requirements.txt
