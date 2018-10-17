@@ -21,7 +21,7 @@ VFLIP = False
 HFLIP = False
 THREADS = 3
 DELAY = 0
-QUALITY = 70
+QUALITY = 50
 
 
 # Override defaults with local_settings
