@@ -26,3 +26,5 @@ sudo apt install libopenjp2-7 libtiff5
 sudo cp stream.service /etc/systemd/system/stream.service
 sudo systemctl enable stream
 sudo systemctl start stream
+
+sudo reboot
