@@ -3,6 +3,7 @@ import time
 import picamera
 import threading
 import json
+import logging
 from base64 import b64encode
 from datetime import datetime
 from websocket import create_connection
@@ -23,17 +24,17 @@ THREADS = 3
 DELAY = 0
 QUALITY = 50
 
+logging.basicConfig(
+    filename='log.txt',
+    format='%(asctime)s %(message)s',
+    level=logging.INFO,
+)
 
 # Override defaults with local_settings
 try:
     from local_settings import *
 except ImportError:
     pass
-
-
-def debug(*args):
-    if DEBUG:
-        print(datetime.now(), *args)
 
 
 def read(ws):
@@ -49,12 +50,13 @@ def decode_and_send(ws, image):
        'image': b64encode(image).decode('ascii'),
        'key': KEY,
     }))
-    debug('Send from', threading.current_thread().name)
+    logging.debug('Send from %s', threading.current_thread().name)
     return result
 
 
 def sender(images, cv, error):
     try:
+        logging.info('Connecting...')
         ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
         threading.Thread(target=read, args=(ws,)).start()
         while not error[0]:
@@ -65,14 +67,14 @@ def sender(images, cv, error):
                 image = images.pop(0)
             decode_and_send(ws, image)
     except:
-        debug('Unable to connect')
+        logging.error('Unable to connect')
         error[0] = True
         with cv:
             cv.notify_all()
 
 
 def capture():
-    debug('Connecting to %s on port %s' % (IP, PORT))
+    logging.info('Connecting to %s on port %s', IP, PORT)
 
     cv = threading.Condition()
     stream_capture = BytesIO()
@@ -82,10 +84,11 @@ def capture():
 
     if not THREADS:
         try:
+            logging.info('Connecting...')
             ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
             threading.Thread(target=read, args=(ws,)).start()
         except:
-            debug('Unable to connect')
+            logging.error('Unable to connect')
             return
 
     for _ in range(THREADS):
@@ -98,8 +101,8 @@ def capture():
 
         for _ in camera.capture_continuous(stream_capture, 'jpeg', use_video_port=True):
             time.sleep(DELAY)
-            debug('Capture')
-            debug('Active threads:', threading.active_count())
+            logging.debug('Capture')
+            logging.debug('Active threads: %d', threading.active_count())
             stream_capture.seek(0)
             stream_image.seek(0)
             stream_image.truncate()
