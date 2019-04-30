@@ -11,15 +11,16 @@ echo "STREAM_NAME = '$stream'" > local_settings.py
 echo "KEY = '$secret'" >> local_settings.py
 
 
+# Install dependencies
+sudo apt install libopenjp2-7 libtiff5 libjpeg-dev python3-dev
+
+
 # Virtual environment
 sudo apt install virtualenv
 virtualenv -p python3 env_stream
 source env_stream/bin/activate
 pip install -r requirements.txt
 deactivate
-
-# Install dependencies
-sudo apt install libopenjp2-7 libtiff5
 
 
 # Setup and start service
