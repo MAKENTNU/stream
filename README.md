@@ -8,7 +8,7 @@ Steam from Raspberry Pi to Django website with WebSockets
 3. Clone repo `git clone https://github.com/MAKENTNU/stream.git`
 4. Enter stream folder `cd stream`
 5. Add local settings `nano local_settings.py`
-6. Create a virtual environment `virtualenv -p python3 env_stream`
+6. Create a virtual environment `sudo virtualenv -p python3 env_stream`
 7. Source environment `source env_stream/bin/activate`
 8. Install system libraries `sudo apt install libopenjp2-7 libtiff5 libjpeg-dev python3-dev`
 9. Install requirements `pip install -r requirements.txt`
