@@ -55,7 +55,7 @@ def decode_and_send(ws, image):
        'image': b64encode(image).decode('ascii'),
        'key': KEY,
     }))
-    logger.debug(f'Send from {threading.current_thread().name}')
+    logger.debug(f'Line 64: Send from {threading.current_thread().name}')
     return result
 
 
@@ -71,7 +71,7 @@ def sender(images, cv, error):
                 image = images.pop(0)
             decode_and_send(ws, image)
     except Exception as e:
-        logger.error(e)
+        logger.error(f'Line 80: {e}')
         error[0] = True
         with cv:
             cv.notify_all()
@@ -91,7 +91,7 @@ def capture():
             ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
             threading.Thread(target=read, args=(ws,)).start()
         except Exception as e:
-            logger.error(e)
+            logger.error(f'Line 100: {e}')
             return
 
     for _ in range(THREADS):
@@ -112,7 +112,7 @@ def capture():
             try:
                 Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
             except Exception as e:
-                logger.error(e)
+                logger.error(f'Line 121: {e}')
             if THREADS:
                 if error[0]:
                     break
@@ -131,7 +131,7 @@ def capture():
 
 
 def main():
-    logger.info("Initialising")
+    logger.info("Line 140: Initialising")
     while True:
         capture()
         time.sleep(3)
