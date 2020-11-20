@@ -9,6 +9,9 @@ from websocket import create_connection
 from websocket._exceptions import WebSocketBadStatusException, WebSocketConnectionClosedException
 from PIL import Image
 from io import BytesIO
+import logging
+import os
+
 
 # Default settings
 RESOLUTION = (640, 480)
@@ -22,7 +25,10 @@ HFLIP = False
 THREADS = 3
 DELAY = 0
 QUALITY = 50
-
+LOG_FOLDER = "logs"
+LOG_FILENAME= os.path.join(LOG_FOLDER, f'{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}_stream_log.log')
+LOG_FORMAT = '%(asctime)s %(message)s'
+LOG_LEVEL = "ERROR"
 
 # Override defaults with local_settings
 try:
@@ -30,11 +36,11 @@ try:
 except ImportError:
     pass
 
-
-def debug(*args):
-    if DEBUG:
-        print(datetime.now(), *args)
-
+os.makedirs(LOG_FOLDER, exist_ok=True)
+logging.basicConfig(filename=LOG_FILENAME,
+                    format=LOG_FORMAT, 
+                    filemode='w') 
+logger=logging.getLogger(__name__) 
 
 def read(ws):
     while True:
@@ -49,7 +55,7 @@ def decode_and_send(ws, image):
        'image': b64encode(image).decode('ascii'),
        'key': KEY,
     }))
-    debug('Send from', threading.current_thread().name)
+    logger.debug(f'Send from {threading.current_thread().name}')
     return result
 
 
@@ -64,15 +70,15 @@ def sender(images, cv, error):
                     cv.wait()
                 image = images.pop(0)
             decode_and_send(ws, image)
-    except:
-        debug('Unable to connect')
+    except Exception as e:
+        logger.error(e)
         error[0] = True
         with cv:
             cv.notify_all()
 
 
 def capture():
-    debug('Connecting to %s on port %s' % (IP, PORT))
+    logger.debug('Connecting to %s on port %s' % (IP, PORT))
 
     cv = threading.Condition()
     stream_capture = BytesIO()
@@ -84,8 +90,8 @@ def capture():
         try:
             ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
             threading.Thread(target=read, args=(ws,)).start()
-        except:
-            debug('Unable to connect')
+        except Exception as e:
+            logger.error(e)
             return
 
     for _ in range(THREADS):
@@ -98,15 +104,15 @@ def capture():
 
         for _ in camera.capture_continuous(stream_capture, 'jpeg', use_video_port=True):
             time.sleep(DELAY)
-            debug('Capture')
-            debug('Active threads:', threading.active_count())
+            logger.debug('Capture')
+            logger.debug('Active threads:', threading.active_count())
             stream_capture.seek(0)
             stream_image.seek(0)
             stream_image.truncate()
             try:
                 Image.open(stream_capture).save(stream_image, 'jpeg', optimize=True, quality=QUALITY)
-            except:
-                pass
+            except Exception as e:
+                logger.error(e)
             if THREADS:
                 if error[0]:
                     break
@@ -117,13 +123,15 @@ def capture():
             else:
                 try:
                     decode_and_send(ws, stream_image.getvalue())
-                except:
+                except Exception as e:
+                    logger.error(e)
                     return
             stream_capture.seek(0)
             stream_capture.truncate()
 
 
 def main():
+    logger.info("Initialising")
     while True:
         capture()
         time.sleep(3)
