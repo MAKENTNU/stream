@@ -2,3 +2,4 @@ picamera
 websocket-client
 numpy
 pillow
+logger
