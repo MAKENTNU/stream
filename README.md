@@ -14,7 +14,7 @@ The secret can be found on locally on the MAKE NTNU server in `local_settings.py
 
 The pi will reboot once the script is done and the stream should now be visible on the website.
 
-The stream name and secret can be edited manually if needed:
+The `STREAM_NAME` and `KEY` can be edited manually if needed:
 1. Enter stream folder `cd stream`
 2. Edit file `nano local_settings.py`
 3. `reboot`
