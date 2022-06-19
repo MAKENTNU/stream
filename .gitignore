@@ -120,8 +120,9 @@ fabric.properties
 
 .idea/*
 
-!.idea/codeStyles
-!.idea/runConfigurations
+# Don't include these, as we currently don't share things like this
+#!.idea/codeStyles
+#!.idea/runConfigurations
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -299,11 +300,12 @@ pip-selfcheck.json
 
 ### VisualStudioCode ###
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+# Don't include these, as we currently don't share things like this
+#!.vscode/settings.json
+#!.vscode/tasks.json
+#!.vscode/launch.json
+#!.vscode/extensions.json
+#!.vscode/*.code-snippets
 
 # Local History for Visual Studio Code
 .history/
