@@ -1,3 +1,5 @@
+### [This repo has been discontinued; streaming on our printers is instead done through OctoPrint, which is set up through [the `octopi-setup` repo](https://github.com/MAKENTNU/octopi-setup)]
+
 # stream
 Stream from Raspberry Pi to Django website with WebSockets.
 
