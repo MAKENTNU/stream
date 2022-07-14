@@ -28,7 +28,7 @@ deactivate
 
 
 # Set up and start service
-sudo cp stream.service /etc/systemd/system/stream.service
+sudo ln -s "$(pwd)/stream.service" /etc/systemd/system/stream.service
 sudo systemctl enable stream
 sudo systemctl start stream
 
