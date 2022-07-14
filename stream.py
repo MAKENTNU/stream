@@ -1,28 +1,28 @@
-import io
-import time
-import picamera
-import threading
 import json
+import threading
+import time
 from base64 import b64encode
 from datetime import datetime
-from websocket import create_connection
-from websocket._exceptions import WebSocketBadStatusException, WebSocketConnectionClosedException
-from PIL import Image
 from io import BytesIO
+
+import picamera
+from PIL import Image
+from websocket import create_connection
+
 
 # Default settings
 RESOLUTION = (640, 480)
-IP = 'makentnu.no'
-PORT = 80
+HOST = 'makentnu.no'
 KEY = 'SECRET'
 STREAM_NAME = 'STREAM'
+STREAM_URL = f'wss://{HOST}/ws/stream/{STREAM_NAME}/'
 DEBUG = True
 VFLIP = False
 HFLIP = False
 THREADS = 3
 DELAY = 0
+TIME_BETWEEN_CONNECTION_RETRIES = 3
 QUALITY = 50
-
 
 # Override defaults with local_settings
 try:
@@ -46,33 +46,34 @@ def read(ws):
 
 def decode_and_send(ws, image):
     result = ws.send(json.dumps({
-       'image': b64encode(image).decode('ascii'),
-       'key': KEY,
+        'image': b64encode(image).decode('ascii'),
+        'key': KEY,
     }))
-    debug('Send from', threading.current_thread().name)
+    debug("Send from", threading.current_thread().name)
     return result
 
 
 def sender(images, cv, error):
     try:
-        ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+        ws = create_connection(STREAM_URL)
         threading.Thread(target=read, args=(ws,)).start()
         while not error[0]:
             with cv:
                 while not len(images):
-                    if error[0]: return
+                    if error[0]:
+                        return
                     cv.wait()
                 image = images.pop(0)
             decode_and_send(ws, image)
     except:
-        debug('Unable to connect')
+        debug("Unable to connect")
         error[0] = True
         with cv:
             cv.notify_all()
 
 
 def capture():
-    debug('Connecting to %s on port %s' % (IP, PORT))
+    debug(f"Connecting to {HOST}")
 
     cv = threading.Condition()
     stream_capture = BytesIO()
@@ -82,10 +83,10 @@ def capture():
 
     if not THREADS:
         try:
-            ws = create_connection('wss://%s/ws/stream/%s/' % (IP, STREAM_NAME))
+            ws = create_connection(STREAM_URL)
             threading.Thread(target=read, args=(ws,)).start()
         except:
-            debug('Unable to connect')
+            debug("Unable to connect")
             return
 
     for _ in range(THREADS):
@@ -98,8 +99,8 @@ def capture():
 
         for _ in camera.capture_continuous(stream_capture, 'jpeg', use_video_port=True):
             time.sleep(DELAY)
-            debug('Capture')
-            debug('Active threads:', threading.active_count())
+            debug("Capture")
+            debug("Active threads:", threading.active_count())
             stream_capture.seek(0)
             stream_image.seek(0)
             stream_image.truncate()
@@ -126,7 +127,7 @@ def capture():
 def main():
     while True:
         capture()
-        time.sleep(3)
+        time.sleep(TIME_BETWEEN_CONNECTION_RETRIES)
 
 
 main()

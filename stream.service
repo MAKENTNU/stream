@@ -1,5 +1,5 @@
 [Unit]
-Description=Websocket video stream
+Description=WebSocket video stream for MAKE NTNU's website
 
 [Service]
 User=pi
