@@ -1,4 +1,5 @@
 picamera
 websocket-client
-numpy
+# Provides a slight performance boost; see https://websocket-client.readthedocs.io/en/latest/faq.html#why-is-this-library-slow
+wsaccel
 Pillow
